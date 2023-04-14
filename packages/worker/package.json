@@ -1,0 +1,8 @@
+{
+  "name": "@mimir/worker",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "exports": "./src/index.js",
+  "packageManager": "yarn@3.5.0"
+}

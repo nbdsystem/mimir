@@ -1,0 +1,20 @@
+---
+version: '3'
+services:
+  redis:
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - 'redis-data:/data'
+  proxy:
+    build:
+      context: ./proxy
+    ports:
+      - '80:443'
+      - '443:443'
+
+volumes:
+  redis-data:
+    driver: local

@@ -1,0 +1,60 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./mimir.db"
+}
+
+model Package {
+  id   String @id @default(uuid())
+  name String @unique
+
+  versions PackageVersion[]
+}
+
+model PackageVersion {
+  id        String @id @default(uuid())
+  version   String
+  packageId String
+
+  package     Package             @relation(fields: [packageId], references: [id])
+  entrypoints PackageEntrypoint[]
+
+  @@unique(fields: [packageId, version], name: "versionByPackage")
+}
+
+model PackageEntrypoint {
+  id             String  @id @default(uuid())
+  entrypoint     String
+  filepath       String?
+  versionId      String
+  type           String?
+  minified       Int?
+  unminified     Int?
+  gzipMinified   Int?
+  gzipUnminified Int?
+
+  exports PackageExport[]
+  version PackageVersion  @relation(fields: [versionId], references: [id])
+
+  @@unique(fields: [versionId, entrypoint], name: "entrypointByVersion")
+}
+
+model PackageExport {
+  id             String @id @default(uuid())
+  identifier     String
+  entrypointId   String
+  minified       Int?
+  unminified     Int?
+  gzipMinified   Int?
+  gzipUnminified Int?
+
+  entrypoint PackageEntrypoint @relation(fields: [entrypointId], references: [id])
+
+  @@unique(fields: [entrypointId, identifier], name: "export")
+}

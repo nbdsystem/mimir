@@ -1,12 +1,17 @@
 {
   "name": "mimir",
+  "type": "module",
   "private": true,
   "workspaces": [
-    "packages/*",
+    "api",
+    "background",
+    "cache",
     "www",
-    "api"
+    "jobs",
+    "packages/*"
   ],
   "scripts": {
+    "db:reset": "yarn prisma migrate reset",
     "format": "prettier --cache --write '**/*.{js,md,mdx,ts,tsx,yml}'",
     "format:diff": "prettier --cache --list-different '**/*.{js.md,mdx,ts,tsx,yml}'",
     "lint": "eslint  '**/*.{js,ts,tsx}' --max-warnings=0",
@@ -15,13 +20,16 @@
   "devDependencies": {
     "@commitlint/cli": "^17.5.1",
     "@commitlint/config-conventional": "^17.4.4",
+    "@prisma/client": "4.12.0",
     "@trivago/prettier-plugin-sort-imports": "^4.1.1",
     "eslint": "^8.37.0",
     "eslint-plugin-react": "^7.32.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "husky": "^8.0.3",
     "lint-staged": "^13.2.0",
-    "prettier": "^2.8.7"
+    "prettier": "^2.8.7",
+    "prettier-plugin-tailwindcss": "^0.2.7",
+    "prisma": "^4.12.0"
   },
   "commitlint": {
     "extends": [
