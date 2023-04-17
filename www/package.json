@@ -6,7 +6,11 @@
     "develop": "next"
   },
   "dependencies": {
+    "@heroicons/react": "^2.0.17",
+    "@mimir/prisma": "^0.0.0",
     "@mimir/worker": "^0.0.0",
+    "clsx": "^1.2.1",
+    "filesize": "^10.0.7",
     "got": "^12.6.0",
     "next": "^13.3.0",
     "react": "^18.2.0",

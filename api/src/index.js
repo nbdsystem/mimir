@@ -1,4 +1,7 @@
 import { logger } from '@mimir/logger';
+import { prisma } from '@mimir/prisma';
+import { Octokit } from '@octokit/rest';
+import slugify from '@sindresorhus/slugify';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import express from 'express';
@@ -6,13 +9,13 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { v4 as uuid } from 'uuid';
 import { z } from 'zod';
-import * as BackgroundJob from './BackgroundJob/index.js';
+import { BackgroundJob } from './BackgroundJob.js';
 import { GetPackageDetails } from './jobs/GetPackageDetails.js';
+import { GetPackageUsage } from './jobs/GetPackageUsage.js';
 
 const { HOST = '0.0.0.0', PORT = '4000' } = process.env;
 
 async function main() {
-  const backgroundJob = BackgroundJob.get();
   const app = express();
 
   app.use((req, res, next) => {
@@ -32,10 +35,359 @@ async function main() {
   app.use(bodyParser.json());
   app.disable('x-powered-by');
 
+  // ---------------------------------------------------------------------------
+  // Packages
+  // ---------------------------------------------------------------------------
+  const CreatePackageSchema = z.object({
+    name: z.string(),
+  });
+
+  // List all packages
   app.get(
-    '/',
-    handler(async (_req, res) => {
-      res.send('Hello world');
+    '/api/packages',
+    handler(async (req, res) => {
+      const packages = await prisma.package.findMany({
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+      res.json(packages);
+    }),
+  );
+
+  // Create a package
+  app.post(
+    '/api/packages',
+    handler(async (req, res) => {
+      const { data, error } = CreatePackageSchema.safeParse(req.body);
+      if (error) {
+        return res.json({
+          type: 'error',
+          details: error.format(),
+        });
+      }
+
+      let pkg = await prisma.package.findUnique({
+        where: {
+          name: data.name,
+        },
+      });
+      if (pkg) {
+        return res.json({
+          type: 'error',
+          details: `A package already exists with name: ${data.name}`,
+        });
+      }
+      pkg = await prisma.package.create({
+        data: {
+          name: data.name,
+          slug: slugify(data.name),
+        },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      await BackgroundJob.enqueue(GetPackageDetails, data.name);
+
+      res.json(pkg);
+    }),
+  );
+
+  // Get a package
+  app.get(
+    '/api/packages/:id',
+    handler(async (req, res) => {
+      const pkg = await prisma.package.findUnique({
+        where: {
+          id: req.params.id,
+        },
+        select: {
+          id: true,
+          name: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+      if (!pkg) {
+        return res.status(404).json({ message: 'Not found' });
+      }
+      return res.json(pkg);
+    }),
+  );
+
+  // Delete a package
+  app.delete(
+    '/api/packages/:id',
+    handler(async (req, res) => {
+      const pkg = await prisma.package.findUnique({
+        where: {
+          id: req.params.id,
+        },
+      });
+      if (!pkg) {
+        return res.status(404).json({
+          status: 'error',
+          details: 'Not found',
+        });
+      }
+
+      await prisma.package.delete({
+        where: {
+          id: req.params.id,
+        },
+      });
+
+      res.json({
+        status: 'ok',
+      });
+    }),
+  );
+
+  // ---------------------------------------------------------------------------
+  // Repositories
+  // ---------------------------------------------------------------------------
+
+  // List all repositories
+  app.get(
+    '/api/repos',
+    handler(async (req, res) => {
+      const repos = await prisma.repository.findMany({
+        select: {
+          id: true,
+          owner: true,
+          name: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+      res.json(repos);
+    }),
+  );
+
+  const CreateRepositorySchema = z.object({
+    owner: z.string(),
+    name: z.string(),
+  });
+
+  // Create a repository
+  app.post(
+    '/api/repos',
+    handler(async (req, res) => {
+      const { data, error } = CreateRepositorySchema.safeParse(req.body);
+      if (error) {
+        const { _errors, ...rest } = error.format();
+
+        return res.json({
+          message: 'Validation failed',
+          errors: Object.entries(rest).map(([key, value]) => {
+            return {
+              resource: 'Repository',
+              field: key,
+              code: value._errors,
+            };
+          }),
+        });
+      }
+
+      let repo = await prisma.repository.findUnique({
+        where: {
+          fullName: {
+            owner: data.owner,
+            name: data.name,
+          },
+        },
+      });
+      if (repo) {
+        return res.json({
+          type: 'error',
+          details: `A Repository already exists with owner: ${data.owner} and name: ${data.name}`,
+        });
+      }
+
+      const octokit = new Octokit({
+        auth: process.env.GITHUB_TOKEN,
+      });
+      const { data: response } = await octokit.rest.repos.get({
+        owner: data.owner,
+        repo: data.name,
+      });
+
+      if (!response) {
+        return res.json({ message: 'Repo not found on GitHub' });
+      }
+
+      repo = await prisma.repository.create({
+        data: {
+          owner: data.owner,
+          name: data.name,
+        },
+        select: {
+          id: true,
+          owner: true,
+          name: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      res.json(repo);
+    }),
+  );
+
+  // ---------------------------------------------------------------------------
+  // Dependencies
+  // ---------------------------------------------------------------------------
+
+  // Get dependencies for a repo
+  app.get(
+    '/api/repos/:id/dependencies',
+    handler(async (req, res) => {
+      const dependencies = await prisma.dependency.findMany({
+        where: {
+          repositoryId: req.params.id,
+        },
+        select: {
+          id: true,
+          package: {
+            select: {
+              id: true,
+              name: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      res.json(dependencies);
+    }),
+  );
+
+  const AddDependencySchema = z.object({
+    packageId: z.string(),
+  });
+
+  // Add a dependency to a repo
+  app.post(
+    '/api/repos/:id/dependencies',
+    handler(async (req, res) => {
+      const { data, error } = AddDependencySchema.safeParse(req.body);
+      if (error) {
+        return res.json({
+          type: 'error',
+          details: error.format(),
+        });
+      }
+
+      const repo = await prisma.repository.findUnique({
+        where: {
+          id: req.params.id,
+        },
+      });
+      if (!repo) {
+        return res.status(404).json({
+          type: 'error',
+          details: `No repository found with id: ${req.params.id}`,
+        });
+      }
+
+      const pkg = await prisma.package.findUnique({
+        where: {
+          id: data.packageId,
+        },
+      });
+      if (!pkg) {
+        return res.status(404).json({
+          type: 'error',
+          details: `No package found with id: ${data.id}`,
+        });
+      }
+
+      let dependency = await prisma.dependency.findUnique({
+        where: {
+          repositoryByPackage: {
+            repositoryId: req.params.id,
+            packageId: data.packageId,
+          },
+        },
+      });
+      if (dependency) {
+        return res.json({
+          type: 'error',
+          details: `A dependency already exists with repositoryId: ${data.repositoryId} and packageId: ${data.packageId}`,
+        });
+      }
+      dependency = await prisma.dependency.create({
+        data: {
+          packageId: data.packageId,
+          repositoryId: req.params.id,
+        },
+        select: {
+          id: true,
+          repository: {
+            select: {
+              id: true,
+              owner: true,
+              name: true,
+            },
+          },
+          package: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      res.json(dependency);
+    }),
+  );
+
+  // Sync the dependencies for a repo
+  app.post(
+    '/api/repos/:id/dependencies/sync',
+    handler(async (req, res) => {
+      const repo = await prisma.repository.findUnique({
+        where: {
+          id: req.params.id,
+        },
+      });
+      const dependencies = await prisma.dependency.findMany({
+        where: {
+          repositoryId: repo.id,
+        },
+        select: {
+          package: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      const jobs = await Promise.all(
+        dependencies.map(async (dependency) => {
+          const jobId = await BackgroundJob.enqueue(
+            GetPackageUsage,
+            dependency.package.id,
+            repo.id,
+          );
+          return jobId;
+        }),
+      );
+
+      res.json(jobs);
     }),
   );
 
@@ -46,7 +398,7 @@ async function main() {
   app.get(
     '/api/queue',
     handler(async (req, res) => {
-      const jobs = await backgroundJob.Job.all();
+      const jobs = await BackgroundJob.Job.all();
       res.json(jobs);
     }),
   );
@@ -54,17 +406,36 @@ async function main() {
   app.post(
     '/api/queue/clear',
     handler(async (req, res) => {
-      await backgroundJob.clear();
+      await BackgroundJob.clear();
       res.json({
         status: 'ok',
       });
     }),
   );
 
+  const RetryJobSchema = z.object({
+    id: z.string(),
+  });
+
+  app.post(
+    '/api/queue/retry',
+    handler(async (req, res) => {
+      const { data, error } = RetryJobSchema.safeParse(req.body);
+      if (error) {
+        return res.json({
+          type: 'error',
+          details: error.format(),
+        });
+      }
+
+      throw new Error('unimplemented');
+    }),
+  );
+
   app.get(
     '/api/queue/in-progress',
     handler(async (req, res) => {
-      const jobs = await backgroundJob.jobs();
+      const jobs = await BackgroundJob.Job.all();
       res.json(jobs.inProgress);
     }),
   );
@@ -72,7 +443,7 @@ async function main() {
   app.get(
     '/api/queue/workers',
     handler(async (req, res) => {
-      const workers = await backgroundJob.workers();
+      const workers = await BackgroundJob.Worker.all();
       res.json(
         workers.map((worker) => {
           return {
@@ -87,7 +458,7 @@ async function main() {
   app.get(
     '/api/queue/failures',
     handler(async (req, res) => {
-      const jobs = await backgroundJob.jobs();
+      const jobs = await BackgroundJob.Job.all();
       res.json(jobs.failed);
     }),
   );
@@ -114,153 +485,25 @@ async function main() {
         });
       }
 
-      const id = await backgroundJob.enqueue(GetPackageDetailsJob, data.name);
+      const jobs = await BackgroundJob.Job.all();
+      const job = jobs.find((job) => {
+        return job.args[0] === data.name;
+      });
+      if (job) {
+        if (job.state === 'pending' || job.state === 'queued') {
+          return res.json({
+            type: 'error',
+            details: `A job for package ${data.name} is already in the queue`,
+          });
+        }
+      }
+
+      const id = await BackgroundJob.enqueue(GetPackageDetails, data.name);
       res.json({
         id,
       });
     }),
   );
-
-  app.post(
-    '/api/jobs/queue',
-    handler(async (req, res) => {
-      for (let i = 0; i < 100; i++) {
-        await backgroundJob.enqueue(AddJob, 1, i);
-      }
-      res.send('OK');
-    }),
-  );
-
-  // app.get(
-  // '/api/jobs',
-  // handler(async (req, res) => {
-  // const packageJobs = await prisma.packageJob.findMany({
-  // select: {
-  // id: true,
-  // name: true,
-  // status: true,
-  // message: true,
-  // createdAt: true,
-  // updatedAt: true,
-  // },
-  // where: {
-  // NOT: {
-  // status: {
-  // equals: 0,
-  // },
-  // },
-  // },
-  // });
-
-  // res.json([...packageJobs]);
-  // }),
-  // );
-
-  // const CREATE_PACKAGE_JOB_SCHEMA = z.object({
-  // name: z.string(),
-  // });
-
-  // const QUEUED = 2;
-  // app.post(
-  // '/api/jobs/packages',
-  // handler(async (req, res) => {
-  // const { data, error } = CREATE_PACKAGE_JOB_SCHEMA.safeParse(req.body);
-  // if (error) {
-  // res.json({
-  // type: 'error',
-  // details: error.format(),
-  // });
-  // return;
-  // }
-
-  // let jobs = await prisma.packageJob.findMany({
-  // where: {
-  // name: data.name,
-  // status: QUEUED,
-  // },
-  // });
-  // if (jobs.length !== 0) {
-  // res.json({
-  // type: 'error',
-  // details: `A job for package \`${data.name}\` is already queued`,
-  // });
-  // return;
-  // }
-
-  // const job = await prisma.packageJob.create({
-  // data: {
-  // name: data.name,
-  // status: QUEUED,
-  // },
-  // select: {
-  // id: true,
-  // name: true,
-  // status: true,
-  // createdAt: true,
-  // updatedAt: true,
-  // },
-  // });
-
-  // getPackageInfo(job);
-
-  // return res.json(job);
-  // }),
-  // );
-
-  // app.post(
-  // '/api/jobs/repos',
-  // handler(async (req, res) => {
-  // throw new Error('unimplemented');
-  // }),
-  // );
-
-  // app.get(
-  // '/api/jobs/queue',
-  // handler(async (req, res) => {
-  // const packageJobs = await prisma.packageJob.findMany({
-  // where: {
-  // status: QUEUED,
-  // },
-  // select: {
-  // id: true,
-  // name: true,
-  // status: true,
-  // createdAt: true,
-  // updatedAt: true,
-  // },
-  // });
-  // res.json(packageJobs);
-  // }),
-  // );
-
-  // app.delete(
-  // '/api/jobs/queue',
-  // handler(async (req, res) => {
-  // const packageJobs = await prisma.packageJob.findMany({
-  // where: {
-  // status: QUEUED,
-  // },
-  // });
-  // for (const job of packageJobs) {
-  // await prisma.packageJob.delete({
-  // where: {
-  // id: job.id,
-  // },
-  // });
-  // }
-  // res.json({
-  // status: 200,
-  // message: 'Queue cleared',
-  // });
-  // }),
-  // );
-
-  // app.get(
-  // '/api/jobs/:id',
-  // handler(async (req, res) => {
-  // throw new Error('unimplemented');
-  // }),
-  // );
 
   app.use((_req, res, _next) => {
     res.status(404).send('Not found');
@@ -280,7 +523,7 @@ async function main() {
     logger.info(`Listening on http://${HOST}:${PORT}`);
   });
 
-  backgroundJob.start();
+  BackgroundJob.start();
 }
 
 function handler(handlerFn) {
@@ -288,39 +531,6 @@ function handler(handlerFn) {
     Promise.resolve(handlerFn(req, res, next)).catch(next);
   };
 }
-
-// const pool = Pool.create(new URL('./worker.js', import.meta.url), {
-// numWorkers: 2,
-// supportedMethods: ['getPackageInfo'],
-// });
-
-// async function getPackageInfo(job) {
-// try {
-// const result = await pool.getPackageInfo(job.name);
-
-// console.log(result);
-
-// await prisma.packageJob.update({
-// where: {
-// id: job.id,
-// },
-// data: {
-// status: 0,
-// },
-// });
-// } catch (error) {
-// logger.error(error);
-// await prisma.packageJob.update({
-// where: {
-// id: job.id,
-// },
-// data: {
-// status: 1,
-// message: `${error.message}\n${error.stack}`,
-// },
-// });
-// }
-// }
 
 main().catch((error) => {
   logger.error(error);

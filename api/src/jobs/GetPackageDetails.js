@@ -15,6 +15,7 @@ import { rollup } from 'rollup';
 import semver from 'semver';
 import tar from 'tar';
 import { minify } from 'terser';
+import { BackgroundJob } from '../BackgroundJob.js';
 import { prisma } from '../prisma.js';
 import { Job } from './Job.js';
 
@@ -61,65 +62,150 @@ export const GetPackageDetails = Job({
     });
 
     for (const version of versions) {
-      logger.info('Getting %s@%s', pkg.name, version);
-
-      let packageVersion = await prisma.packageVersion.findUnique({
-        where: {
-          versionByPackage: {
-            packageId: pkg.id,
-            version,
-          },
-        },
-      });
-      if (!packageVersion) {
-        packageVersion = await prisma.packageVersion.create({
-          data: {
-            packageId: pkg.id,
-            version,
-          },
-        });
-      }
-
-      const info = await getPackageVersion(pkg.name, version);
-      const hash = createHash('sha256')
-        .update(pkg.name)
-        .update('\n')
-        .update(version)
-        .digest('base64url');
-      const directory = path.join(cacheDir, hash);
-      if (!existsSync(directory)) {
-        await fs.mkdir(directory, {
-          recursive: true,
-        });
-      }
-
-      if (!existsSync(path.join(directory, 'package'))) {
-        logger.info('Downloading package %s@%s', pkg.name, version);
-        await pipeline(
-          got.stream(info.dist.tarball),
-          tar.extract({
-            cwd: directory,
-          }),
-        );
-      }
-
-      if (!existsSync(path.join(directory, 'stats.json'))) {
-        logger.info('Analyzing package %s@%s', pkg.name, version);
-        const data = await getBundleData(path.join(directory, 'package'));
-        await fs.writeFile(
-          path.join(directory, 'stats.json'),
-          JSON.stringify(data),
-          'utf8',
-        );
-      }
-
-      const stats = JSON.parse(
-        await fs.readFile(path.join(directory, 'stats.json'), 'utf8'),
-      );
-      console.log(stats);
+      await BackgroundJob.enqueue(GetPackageVersion, pkg.id, version);
     }
 
     return pkg;
+  },
+});
+
+export const GetPackageVersion = Job({
+  name: 'GetPackageVersion',
+  file: import.meta.url,
+  async run(id, version) {
+    const pkg = await prisma.package.findUniqueOrThrow({
+      where: {
+        id,
+      },
+    });
+
+    logger.info('Getting %s@%s', pkg.name, version);
+
+    let packageVersion = await prisma.packageVersion.findUnique({
+      where: {
+        versionByPackage: {
+          packageId: pkg.id,
+          version,
+        },
+      },
+    });
+    if (!packageVersion) {
+      packageVersion = await prisma.packageVersion.create({
+        data: {
+          packageId: pkg.id,
+          version,
+        },
+      });
+    }
+
+    const info = await getPackageVersion(pkg.name, version);
+    const hash = createHash('sha256')
+      .update(pkg.name)
+      .update('\n')
+      .update(version)
+      .digest('base64url');
+    const directory = path.join(cacheDir, hash);
+    if (!existsSync(directory)) {
+      await fs.mkdir(directory, {
+        recursive: true,
+      });
+    }
+
+    if (!existsSync(path.join(directory, 'package'))) {
+      logger.info('Downloading package %s@%s', pkg.name, version);
+      await pipeline(
+        got.stream(info.dist.tarball),
+        tar.extract({
+          cwd: directory,
+        }),
+      );
+    }
+
+    if (!existsSync(path.join(directory, 'stats.json'))) {
+      logger.info('Analyzing package %s@%s', pkg.name, version);
+      const data = await getBundleData(path.join(directory, 'package'));
+      await fs.writeFile(
+        path.join(directory, 'stats.json'),
+        JSON.stringify(data),
+        'utf8',
+      );
+    }
+
+    const stats = JSON.parse(
+      await fs.readFile(path.join(directory, 'stats.json'), 'utf8'),
+    );
+
+    for (const entrypointStats of stats.entrypoints) {
+      let entrypoint = await prisma.packageEntrypoint.findUnique({
+        where: {
+          entrypointByVersion: {
+            versionId: packageVersion.id,
+            entrypoint: entrypointStats.entrypoint,
+          },
+        },
+      });
+      if (!entrypoint) {
+        entrypoint = await prisma.packageEntrypoint.create({
+          data: {
+            versionId: packageVersion.id,
+            entrypoint: entrypointStats.entrypoint,
+          },
+        });
+      }
+
+      entrypoint = await prisma.packageEntrypoint.update({
+        where: {
+          entrypointByVersion: {
+            versionId: packageVersion.id,
+            entrypoint: entrypointStats.entrypoint,
+          },
+        },
+        data: {
+          entrypoint: entrypointStats.entrypointStats,
+          filepath: entrypointStats.filepath,
+          type: entrypointStats.type,
+          minified: entrypointStats.minified,
+          unminified: entrypointStats.unminified,
+          gzipMinified: entrypointStats.gzipMinified,
+          gzipUnminified: entrypointStats.gzipUnminified,
+        },
+      });
+
+      for (const exp of entrypointStats.exports) {
+        let packageExport = await prisma.packageExport.findUnique({
+          where: {
+            export: {
+              entrypointId: entrypoint.id,
+              identifier: exp.identifier,
+            },
+          },
+        });
+        if (!packageExport) {
+          packageExport = await prisma.packageExport.create({
+            data: {
+              entrypointId: entrypoint.id,
+              identifier: exp.identifier,
+            },
+          });
+        }
+
+        await prisma.packageExport.update({
+          where: {
+            export: {
+              entrypointId: entrypoint.id,
+              identifier: exp.identifier,
+            },
+          },
+          data: {
+            identifier: exp.identifier,
+            minified: exp.minified,
+            unminified: exp.unminified,
+            gzipMinified: exp.gzipMinified,
+            gzipUnminified: exp.gzipUnminified,
+          },
+        });
+      }
+    }
   },
 });
 
@@ -184,6 +270,11 @@ async function getBundleData(directory) {
     const exports = [];
 
     for (const identifier of output[0].exports) {
+      if (identifier.startsWith('*')) {
+        logger.info('Skipping re-export: %s', identifier);
+        continue;
+      }
+
       logger.info('Analyzing export: %s', identifier);
 
       const reexport = await rollup({

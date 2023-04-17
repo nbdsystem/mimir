@@ -130,9 +130,9 @@ class Scheduler {
 export const BackgroundJob = {
   create(redis) {
     const scheduler = Scheduler.create({
-      numWorkers: 2,
+      numWorkers: 1,
     });
-    const inProgress = new Map();
+    const pending = new Map();
     const failed = new Set();
     let intervalId = null;
 
@@ -141,7 +141,7 @@ export const BackgroundJob = {
         const entry = await redis.lpop('queue');
         if (entry) {
           const { id, name, file, args } = JSON.parse(entry);
-          inProgress.set(id, {
+          pending.set(id, {
             id,
             name,
             file,
@@ -149,10 +149,10 @@ export const BackgroundJob = {
           });
           scheduler.schedule(name, file, args).then(
             () => {
-              inProgress.delete(id);
+              pending.delete(id);
             },
             (error) => {
-              inProgress.delete(id);
+              pending.delete(id);
               failed.add({
                 id,
                 name,
@@ -178,17 +178,46 @@ export const BackgroundJob = {
           });
         });
 
-        return {
-          queued,
-          failed: Array.from(failed),
-          inProgress: Array.from(inProgress.values()),
-        };
+        return [
+          ...queued.map((job) => {
+            return {
+              id: job.id,
+              name: job.name,
+              args: job.args,
+              state: 'queued',
+            };
+          }),
+
+          ...Array.from(failed).map((job) => {
+            return {
+              id: job.id,
+              name: job.name,
+              args: job.args,
+              error: job.error,
+              state: 'failed',
+            };
+          }),
+
+          ...Array.from(pending.values()).map((job) => {
+            return {
+              id: job.id,
+              name: job.name,
+              args: job.args,
+              state: 'pending',
+            };
+          }),
+        ];
       },
     };
 
     const Worker = {
       async all() {
-        return Array.from(scheduler.pool.workers.values());
+        return Array.from(scheduler.pool.workers.values()).map((value) => {
+          return {
+            id: value.id,
+            state: value.state,
+          };
+        });
       },
     };
 
@@ -200,9 +229,7 @@ export const BackgroundJob = {
         await redis.flushall();
       },
 
-      async restart(workerId) {
-        // TODO
-      },
+      async restart(workerId) {},
 
       start() {
         intervalId = setInterval(() => {
@@ -213,6 +240,7 @@ export const BackgroundJob = {
       stop() {
         clearInterval(intervalId);
       },
+
       async enqueue(job, ...args) {
         const id = uuid();
         const entry = JSON.stringify({

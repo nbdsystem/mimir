@@ -6,30 +6,36 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./mimir.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Package {
-  id   String @id @default(uuid())
-  name String @unique
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
+  dependents Dependency[]
   versions PackageVersion[]
 }
 
 model PackageVersion {
-  id        String @id @default(uuid())
+  id        String   @id @default(uuid())
   version   String
   packageId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  package     Package             @relation(fields: [packageId], references: [id])
+  package     Package             @relation(fields: [packageId], references: [id], onDelete: Cascade)
   entrypoints PackageEntrypoint[]
 
   @@unique(fields: [packageId, version], name: "versionByPackage")
 }
 
 model PackageEntrypoint {
-  id             String  @id @default(uuid())
+  id             String   @id @default(uuid())
   entrypoint     String
   filepath       String?
   versionId      String
@@ -38,23 +44,77 @@ model PackageEntrypoint {
   unminified     Int?
   gzipMinified   Int?
   gzipUnminified Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   exports PackageExport[]
-  version PackageVersion  @relation(fields: [versionId], references: [id])
+  version PackageVersion  @relation(fields: [versionId], references: [id], onDelete: Cascade)
 
   @@unique(fields: [versionId, entrypoint], name: "entrypointByVersion")
 }
 
 model PackageExport {
-  id             String @id @default(uuid())
+  id             String   @id @default(uuid())
   identifier     String
   entrypointId   String
   minified       Int?
   unminified     Int?
   gzipMinified   Int?
   gzipUnminified Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  entrypoint PackageEntrypoint @relation(fields: [entrypointId], references: [id])
+  entrypoint PackageEntrypoint @relation(fields: [entrypointId], references: [id], onDelete: Cascade)
 
   @@unique(fields: [entrypointId, identifier], name: "export")
+}
+
+model Repository {
+  id    String @id @default(uuid())
+  owner String
+  name  String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  commits Commit[]
+  dependencies Dependency[]
+
+  @@unique(fields: [owner, name], name: "fullName")
+}
+
+model Commit {
+  sha          String @id
+  repositoryId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  files      File[]
+  repository Repository @relation(fields: [repositoryId], references: [id])
+
+  @@unique(fields: [sha, repositoryId], name: "commit")
+}
+
+model File {
+  id           String @id @default(uuid())
+  relativePath String
+  commitId     String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  commit Commit @relation(fields: [commitId], references: [sha])
+
+  @@unique(fields: [commitId, relativePath], name: "fileByCommit")
+}
+
+model Dependency {
+  id           String @id @default(uuid())
+  repositoryId String
+  packageId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@unique(fields: [repositoryId, packageId], name: "repositoryByPackage")
 }

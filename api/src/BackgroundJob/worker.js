@@ -22,13 +22,14 @@ parentPort.on('message', async (message) => {
         message.args,
       );
 
+      const now = Date.now();
+
       try {
         parentPort.postMessage({
           type: 'state',
           value: 'pending',
         });
 
-        const now = Date.now();
         const mod = await import(message.file);
         const result = await mod[message.name].run(...message.args, {
           workerId: id,
@@ -45,6 +46,7 @@ parentPort.on('message', async (message) => {
           type: 'state',
           value: 'error',
           error: `${error.message}\n${error.stack}`,
+          duration: Date.now() - now,
         });
       } finally {
         parentPort.postMessage({
