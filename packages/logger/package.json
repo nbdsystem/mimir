@@ -1,0 +1,12 @@
+{
+  "name": "@mimir/logger",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "exports": "./src/index.js",
+  "packageManager": "yarn@3.5.0",
+  "dependencies": {
+    "pino": "^8.11.0",
+    "pino-pretty": "^10.0.0"
+  }
+}
