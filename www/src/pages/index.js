@@ -1,3 +1,13 @@
+import { Page } from '../components/Page';
+import { PageFooter } from '../components/PageFooter';
+import { PageHeader } from '../components/PageHeader';
+
 export default function IndexPage() {
-  return <div className="text-gray-600">Hello world!</div>;
+  return (
+    <Page>
+      <PageHeader />
+      <main>Hello world!</main>
+      <PageFooter />
+    </Page>
+  );
 }
