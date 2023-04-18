@@ -1,0 +1,10 @@
+{
+  "name": "@mimir/prisma",
+  "type": "private",
+  "version": "0.0.0",
+  "exports": "./src/index.js",
+  "packageManager": "yarn@3.5.0",
+  "dependencies": {
+    "@prisma/client": "^4.12.0"
+  }
+}
