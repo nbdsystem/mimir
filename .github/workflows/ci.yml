@@ -71,4 +71,4 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable --immutable-cache
       - name: Validate prisma schema
-        run: yarn prisma validate
+        run: yarn dotenv -e .env.development prisma validate
