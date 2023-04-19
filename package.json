@@ -8,6 +8,11 @@
     "prisma"
   ],
   "scripts": {
+    "db:reset": "yarn db:drop && yarn db:setup",
+    "db:drop": "",
+    "db:migrate": "yarn prisma migrate dev",
+    "db:setup": "yarn db:migrate && yarn db:seed",
+    "db:seed": "",
     "format": "prettier --cache --write '**/*.{js,md,mdx,ts,tsx,yml}'",
     "format:diff": "prettier --cache --list-different '**/*.{js.md,mdx,ts,tsx,yml}'",
     "lint": "eslint  '**/*.{js,ts,tsx}' --max-warnings=0",
