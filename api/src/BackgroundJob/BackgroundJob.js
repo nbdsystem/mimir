@@ -4,10 +4,10 @@ import * as redis from '../storage/redis.js';
 import { Pool } from './Pool.js';
 
 export const BackgroundJob = {
-  create() {
+  create({ numWorkers }) {
     const client = redis.get();
     const pool = Pool.create({
-      numWorkers: 1,
+      numWorkers,
     });
     const jobs = new Map();
     let intervalId = null;
