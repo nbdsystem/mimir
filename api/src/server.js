@@ -5,6 +5,8 @@ import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { v4 as uuid } from 'uuid';
+import { BackgroundJob } from './BackgroundJob.js';
+import { BusyBox } from './jobs/BusyBox.js';
 
 export function setup() {
   const app = express();
@@ -32,6 +34,55 @@ export function setup() {
     '/',
     handler(async (req, res) => {
       res.send('Hello World');
+    }),
+  );
+
+  // ---------------------------------------------------------------------------
+  // Queue
+  // ---------------------------------------------------------------------------
+  app.get(
+    '/queue/jobs',
+    handler(async (req, res) => {
+      const jobs = await BackgroundJob.Job.all().then((jobs) => {
+        return jobs.map((job) => {
+          return {
+            id: job.id,
+            name: job.name,
+            args: job.args,
+            state: job.state,
+            createdAt: job.createdAt,
+          };
+        });
+      });
+      res.json(jobs);
+    }),
+  );
+
+  app.get(
+    '/queue/workers',
+    handler(async (req, res) => {
+      const workers = await BackgroundJob.Worker.all().then((workers) => {
+        return workers.map((worker) => {
+          return {
+            id: worker.id,
+            state: worker.state,
+          };
+        });
+      });
+      res.json(workers);
+    }),
+  );
+
+  // ---------------------------------------------------------------------------
+  // Jobs
+  // ---------------------------------------------------------------------------
+  app.post(
+    '/jobs/busybox',
+    handler(async (req, res) => {
+      const id = await BackgroundJob.enqueue(BusyBox);
+      res.json({
+        id,
+      });
     }),
   );
 

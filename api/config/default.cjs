@@ -14,4 +14,5 @@ module.exports = {
   LOG_LEVEL,
   HOST,
   PORT,
+  REDIS_URL: 'redis://127.0.0.1:6379',
 };

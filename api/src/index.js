@@ -1,5 +1,6 @@
 import { logger } from '@mimir/logger';
 import config from 'config';
+import { BackgroundJob } from './BackgroundJob.js';
 import { setup } from './server.js';
 
 const HOST = config.get('HOST');
@@ -11,9 +12,12 @@ async function main() {
   app.listen(PORT, HOST, () => {
     logger.info(`Listening on http://${HOST}:${PORT}`);
   });
+
+  BackgroundJob.start();
 }
 
 main().catch((error) => {
+  BackgroundJob.stop();
   logger.error(error);
   process.exit(1);
 });
