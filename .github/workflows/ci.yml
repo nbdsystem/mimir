@@ -84,5 +84,5 @@ jobs:
           node-version: '18.x'
       - name: Install dependencies
         run: yarn install --immutable --immutable-cache
-      - name: Check formatting of project files
+      - name: Run tests
         run: yarn test --ci
