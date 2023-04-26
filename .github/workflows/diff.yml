@@ -57,7 +57,7 @@ jobs:
               core.setOutput('number', number);
             }
 
-  compare:
+  prisma:
     needs: get-pull-request
     runs-on: ubuntu-latest
     steps:
@@ -104,8 +104,7 @@ jobs:
             const COMMENT_ID = 'actions:id:autocomment';
             const diff = fs.readFileSync('diff', 'utf8');
 
-            const comments = [];
-            const iterator = github.paginate.iterator(
+            const comments = await github.paginate(
               github.rest.issues.listComments,
               {
                 owner: context.repo.owner,
@@ -114,10 +113,6 @@ jobs:
                 per_page: 100,
               },
             );
-
-            for await (const response of iterator) {
-              comments.push(...response);
-            }
 
             const body = [
               '## Prisma',
