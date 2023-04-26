@@ -4,5 +4,5 @@ const { API_URL } = process.env;
 
 export const client = axios.create({
   baseURL: API_URL,
-  timeout: 2500,
+  timeout: 5000,
 });

@@ -9,7 +9,7 @@ export default function ReposPage() {
       <PageHeader />
       <main className="container mx-auto pt-8">
         <Text asChild token="heading-01">
-          <h1 className="gap-">Repos</h1>
+          <h1>Repos</h1>
         </Text>
       </main>
       <PageFooter />

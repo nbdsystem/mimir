@@ -4,7 +4,7 @@ import * as redis from '../storage/redis.js';
 import { Pool } from './Pool.js';
 
 export const BackgroundJob = {
-  create({ numWorkers }) {
+  create({ numWorkers } = {}) {
     const client = redis.get();
     const pool = Pool.create({
       numWorkers,
@@ -25,6 +25,15 @@ export const BackgroundJob = {
       }
 
       const { id, name, file, args } = JSON.parse(entry);
+      if (!jobs.has(id)) {
+        jobs.set(id, {
+          id,
+          name,
+          file,
+          args,
+          state: 'queued',
+        });
+      }
       jobs.get(id).state = 'pending';
       pool.execute(name, file, args).then(
         () => {

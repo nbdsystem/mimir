@@ -1,12 +1,15 @@
 import { logger } from '@mimir/logger';
+import { prisma } from '@mimir/prisma';
+import slugify from '@sindresorhus/slugify';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { v4 as uuid } from 'uuid';
+import { z } from 'zod';
 import { BackgroundJob } from './BackgroundJob.js';
-import { BusyBox } from './jobs/BusyBox.js';
+import { GetPackage } from './jobs/GetPackage.js';
 
 export function setup() {
   const app = express();
@@ -34,6 +37,81 @@ export function setup() {
     '/',
     handler(async (req, res) => {
       res.send('Hello World');
+    }),
+  );
+
+  // ---------------------------------------------------------------------------
+  // Packages
+  // ---------------------------------------------------------------------------
+  const CREATE_PACKAGE_SCHEMA = z.object({
+    name: z.string(),
+  });
+
+  app.post(
+    '/packages',
+    handler(async (req, res) => {
+      const result = CREATE_PACKAGE_SCHEMA.safeParse(req.body);
+      if (result.error) {
+        const formatted = result.error.format();
+        return res.json({
+          errors: Object.entries(formatted).map(([field, value]) => {
+            return {
+              field,
+              errors: value._errors,
+            };
+          }),
+        });
+      }
+
+      let pkg = await prisma.package.findUnique({
+        where: {
+          name: result.data.name,
+        },
+      });
+      if (pkg) {
+        return res.status(400).json({
+          message: 'Resource already exists',
+        });
+      }
+
+      pkg = await prisma.package.create({
+        data: {
+          name: result.data.name,
+          slug: slugify(result.data.name),
+        },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      await BackgroundJob.enqueue(GetPackage, pkg.name);
+
+      res.json(pkg);
+    }),
+  );
+
+  app.delete(
+    '/packages/:id',
+    handler(async (req, res) => {
+      const pkg = await prisma.package.findUnique({
+        where: {
+          id: req.params.id,
+        },
+      });
+      if (pkg) {
+        await prisma.package.delete({
+          where: {
+            id: pkg.id,
+          },
+        });
+        return res.json({ message: 'Package successfully deleted' });
+      }
+
+      res.status(400).json({ message: 'Package not found' });
     }),
   );
 
@@ -70,19 +148,6 @@ export function setup() {
         });
       });
       res.json(workers);
-    }),
-  );
-
-  // ---------------------------------------------------------------------------
-  // Jobs
-  // ---------------------------------------------------------------------------
-  app.post(
-    '/jobs/busybox',
-    handler(async (req, res) => {
-      const id = await BackgroundJob.enqueue(BusyBox);
-      res.json({
-        id,
-      });
     }),
   );
 
