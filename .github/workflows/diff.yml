@@ -110,6 +110,7 @@ jobs:
     permissions:
       # Needed to comment on a Pull Request
       issues: write
+      pull-requests: write
     steps:
       - name: Comment on Pull Request
         uses: actions/github-script@v6
