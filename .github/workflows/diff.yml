@@ -107,6 +107,9 @@ jobs:
   comment:
     needs: [get-pull-request, prisma]
     runs-on: ubuntu-latest
+    permissions:
+      # Needed to comment on a Pull Request
+      issues: write
     steps:
       - name: Comment on Pull Request
         uses: actions/github-script@v6
