@@ -1,0 +1,102 @@
+name: diff
+on:
+  workflow_run:
+    workflows:
+      - ci
+    types:
+      - completed
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  get-pull-request:
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      number: ${{ steps.pr.outputs.number }}
+    steps:
+      - name: Get Pull Request
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: ${{ github.event.workflow_run.id }},
+            });
+            const artifact = artifacts.data.artifacts.find((artifact) => {
+              return artifact.name == 'pull-request'
+            });
+            const download = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: artifact.id,
+              archive_format: 'zip',
+            });
+            fs.writeFileSync('${{github.workspace}}/PR.zip', Buffer.from(download.data));
+      - run: |
+          mkdir PR
+          unzip PR.zip -d PR
+      - uses: actions/github-script@v6
+        id: pr
+        with:
+          script: |
+            const fs = require('fs');
+            const number = parseInt(fs.readFileSync('./PR/number', 'utf8'), 10);
+
+            if (isNaN(number)) {
+              core.setFailed('Unable to parse Pull Request number from artifact');
+            } else {
+              core.setOutput('number', number);
+            }
+
+  compare:
+    needs: pull-request
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 18.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+      - name: Install dependencies
+        run: yarn install --immutable --immutable-cache
+      - name: Download new schema
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: ${{ github.event.workflow_run.id }},
+            });
+            const artifact = artifacts.data.artifacts.find((artifact) => {
+              return artifact.name === 'schema';
+            });
+            const download = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: artifact.id,
+              archive_format: 'zip',
+            });
+
+            fs.writeFileSync(`${{github.workspace}}/new-schema.zip`, Buffer.from(download.data));
+      - name: Compare schema
+        run: |
+          mkdir to-prisma
+          unzip new-schema.zip -d to-prisma
+          yarn prisma migrate diff --from-schema-datamodel './prisma/schema.prisma' --to-schema-datamodel to-prisma/schema.prisma
+        # id: generate_token
+        # uses: tibdex/github-app-token@v1
+        # with:
+        # app_id: ${{ secrets.APP_ID }}
+        # private_key: ${{ secrets.APP_PRIVATE_KEY }}
+      # - name: Generate token
