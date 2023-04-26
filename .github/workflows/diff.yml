@@ -93,4 +93,55 @@ jobs:
         run: |
           mkdir to-prisma
           unzip new-schema.zip -d to-prisma
-          yarn prisma migrate diff --from-schema-datamodel './prisma/schema.prisma' --to-schema-datamodel to-prisma/schema.prisma
+          yarn prisma migrate diff --from-schema-datamodel './prisma/schema.prisma' --to-schema-datamodel to-prisma/schema.prisma > diff
+      - name: Comment on Pull Request
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+
+            const { ISSUE_NUMBER } = process.env;
+            const COMMENT_ID = 'actions:id:autocomment';
+            const diff = fs.readFileSync('diff', 'utf8');
+
+            const comments = [];
+            const iterator = github.rest.paginate.iterator(
+              github.rest.issues.listComments,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: ISSUE_NUMBER,
+                per_page: 100,
+              },
+            );
+
+            for await (const response of iterator) {
+              comments.push(...response);
+            }
+
+            const body = [
+              '## Prisma',
+              diff,
+              `<!-- ${COMMENT_ID} -->`,
+            ].join('\n');
+
+            let comment = comments.find((comment) => {
+              return comment.body.includes(`<!-- ${COMMENT_ID} -->`);
+            });
+            if (comment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                commend_id: comment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: ISSUE_NUMBER,
+                body,
+              });
+            }
+        env:
+          ISSUE_NUMBER: ${{ needs.get-pull-request.outputs.number }}
