@@ -58,8 +58,9 @@ jobs:
             }
 
   prisma:
-    needs: get-pull-request
     runs-on: ubuntu-latest
+    outputs:
+      diff: ${{ steps.compare.outputs.result }}
     steps:
       - uses: actions/checkout@v3
       - name: Use Node.js 18.x
@@ -94,15 +95,27 @@ jobs:
           mkdir to-prisma
           unzip new-schema.zip -d to-prisma
           yarn prisma migrate diff --from-schema-datamodel './prisma/schema.prisma' --to-schema-datamodel to-prisma/schema.prisma > diff
+      - uses: actions/github-script@v6
+        id: compare
+        with:
+          result-encoding: string
+          script: |
+            const fs = require('fs');
+            const diff = fs.readFileSync('./diff', 'utf8');
+            return diff;
+
+  comment:
+    needs: [get-pull-request, prisma]
+    runs-on: ubuntu-latest
+    steps:
       - name: Comment on Pull Request
         uses: actions/github-script@v6
         with:
           script: |
             const fs = require('fs');
 
-            const { ISSUE_NUMBER } = process.env;
+            const { ISSUE_NUMBER, PRISMA_DIFF } = process.env;
             const COMMENT_ID = 'actions:id:autocomment';
-            const diff = fs.readFileSync('diff', 'utf8');
 
             const comments = await github.paginate(
               github.rest.issues.listComments,
@@ -116,7 +129,7 @@ jobs:
 
             const body = [
               '## Prisma',
-              diff,
+              PRISMA_DIFF,
               `<!-- ${COMMENT_ID} -->`,
             ].join('\n');
 
@@ -140,3 +153,4 @@ jobs:
             }
         env:
           ISSUE_NUMBER: ${{ needs.get-pull-request.outputs.number }}
+          PRISMA_DIFF: ${{ needs.prisma.outputs.diff }}
