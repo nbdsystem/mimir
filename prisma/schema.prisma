@@ -18,7 +18,7 @@ model Package {
   updatedAt DateTime @updatedAt
 
   dependents Dependency[]
-  versions PackageVersion[]
+  versions   PackageVersion[]
 }
 
 model PackageVersion {
@@ -70,23 +70,23 @@ model PackageExport {
 }
 
 model Repository {
-  id    String @id @default(uuid())
-  owner String
-  name  String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id        String   @id @default(uuid())
+  owner     String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  commits Commit[]
+  commits      Commit[]
   dependencies Dependency[]
 
   @@unique(fields: [owner, name], name: "fullName")
 }
 
 model Commit {
-  sha          String @id
+  sha          String   @id
   repositoryId String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   files      File[]
   repository Repository @relation(fields: [repositoryId], references: [id])
@@ -95,11 +95,11 @@ model Commit {
 }
 
 model File {
-  id           String @id @default(uuid())
+  id           String   @id @default(uuid())
   relativePath String
   commitId     String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   commit Commit @relation(fields: [commitId], references: [sha])
 
@@ -107,13 +107,13 @@ model File {
 }
 
 model Dependency {
-  id           String @id @default(uuid())
+  id           String   @id @default(uuid())
   repositoryId String
-  packageId String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  packageId    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  package    Package    @relation(fields: [packageId], references: [id], onDelete: Cascade)
   repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
 
   @@unique(fields: [repositoryId, packageId], name: "repositoryByPackage")
