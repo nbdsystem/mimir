@@ -105,7 +105,7 @@ jobs:
             const diff = fs.readFileSync('diff', 'utf8');
 
             const comments = [];
-            const iterator = github.rest.paginate.iterator(
+            const iterator = github.paginate.iterator(
               github.rest.issues.listComments,
               {
                 owner: context.repo.owner,
