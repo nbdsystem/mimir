@@ -58,7 +58,7 @@ jobs:
             }
 
   compare:
-    needs: pull-request
+    needs: get-pull-request
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -94,9 +94,3 @@ jobs:
           mkdir to-prisma
           unzip new-schema.zip -d to-prisma
           yarn prisma migrate diff --from-schema-datamodel './prisma/schema.prisma' --to-schema-datamodel to-prisma/schema.prisma
-        # id: generate_token
-        # uses: tibdex/github-app-token@v1
-        # with:
-        # app_id: ${{ secrets.APP_ID }}
-        # private_key: ${{ secrets.APP_PRIVATE_KEY }}
-      # - name: Generate token
