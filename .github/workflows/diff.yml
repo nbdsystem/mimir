@@ -58,6 +58,7 @@ jobs:
             }
 
   prisma:
+    needs: [get-pull-request]
     runs-on: ubuntu-latest
     outputs:
       diff: ${{ steps.compare.outputs.result }}
