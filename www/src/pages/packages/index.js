@@ -3,13 +3,13 @@ import { PageFooter } from '../../components/PageFooter';
 import { PageHeader } from '../../components/PageHeader';
 import { Text } from '../../components/Text';
 
-export default function ReposPage() {
+export default function PackagesPage() {
   return (
     <Page>
       <PageHeader />
       <main className="container mx-auto pt-8">
         <Text asChild token="heading-01">
-          <h1 className="gap-">Packages</h1>
+          <h1>Packages</h1>
         </Text>
       </main>
       <PageFooter />

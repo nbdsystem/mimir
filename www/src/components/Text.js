@@ -21,12 +21,12 @@ export function Text({
   for (const [key, value] of Object.entries(tokens)) {
     mappings[value] = token === key;
   }
-  const className = cx(customClassName, mappings);
   if (asChild) {
-    return cloneElement(Children.only(children), {
+    const child = Children.only(children);
+    return cloneElement(child, {
       ...rest,
-      className,
+      className: cx(customClassName, mappings, child.props.className),
     });
   }
-  return <div>{children}</div>;
+  return <div className={cx(customClassName, mappings)}>{children}</div>;
 }

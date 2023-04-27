@@ -1,6 +1,7 @@
 {
   "name": "@mimir/prisma",
-  "type": "private",
+  "private": true,
+  "type": "module",
   "version": "0.0.0",
   "exports": "./src/index.js",
   "packageManager": "yarn@3.5.0",
