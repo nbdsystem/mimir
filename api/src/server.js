@@ -115,6 +115,41 @@ export function setup() {
     }),
   );
 
+  app.post(
+    '/packages/refresh',
+    handler(async (req, res) => {
+      const packages = await prisma.package.findMany({
+        select: {
+          name: true,
+        },
+      });
+
+      for (const pkg of packages) {
+        await BackgroundJob.enqueue(GetPackage, pkg.name);
+      }
+
+      res.json({ status: 'ok' });
+    }),
+  );
+
+  app.post(
+    '/packages/:id/refresh',
+    handler(async (req, res) => {
+      const pkg = await prisma.package.findUnique({
+        where: {
+          id: req.params.id,
+        },
+      });
+      if (pkg) {
+        await BackgroundJob.enqueue(GetPackage, pkg.name);
+        res.json({ status: 'ok' });
+        return;
+      }
+
+      res.status(404).send('Not found');
+    }),
+  );
+
   // ---------------------------------------------------------------------------
   // Queue
   // ---------------------------------------------------------------------------
@@ -123,13 +158,19 @@ export function setup() {
     handler(async (req, res) => {
       const jobs = await BackgroundJob.Job.all().then((jobs) => {
         return jobs.map((job) => {
-          return {
+          const result = {
             id: job.id,
             name: job.name,
             args: job.args,
             state: job.state,
             createdAt: job.createdAt,
           };
+
+          if (job.state === 'failed') {
+            result.error = job.error;
+          }
+
+          return result;
         });
       });
       res.json(jobs);
