@@ -1,15 +1,15 @@
 import { logger } from '@mimir/logger';
-import { v4 as uuid } from 'uuid';
+import { prisma } from '@mimir/prisma';
+import * as jobs from '../jobs/index.js';
 import * as redis from '../storage/redis.js';
 import { Pool } from './Pool.js';
 
 export const BackgroundJob = {
-  create({ numWorkers } = {}) {
+  create({ numWorkers = 1 } = {}) {
     const client = redis.get();
     const pool = Pool.create({
       numWorkers,
     });
-    const jobs = new Map();
     let intervalId = null;
 
     async function processQueue() {
@@ -18,39 +18,72 @@ export const BackgroundJob = {
         return;
       }
 
-      const entry = await client.lpop('queue');
-      if (!entry) {
+      const id = await client.lpop('queue');
+      if (!id) {
         logger.debug('No jobs in queue');
         return;
       }
 
-      const { id, name, file, args, createdAt } = JSON.parse(entry);
-      if (!jobs.has(id)) {
-        jobs.set(id, {
+      const job = await prisma.job.findUnique({
+        where: {
           id,
-          name,
-          args,
-          state: 'queued',
-          createdAt,
-        });
+        },
+        select: {
+          id: true,
+          name: true,
+          args: true,
+          state: true,
+          createdAt: true,
+        },
+      });
+
+      if (!job) {
+        logger.error('Unable to find job with id: %s', id);
+        return;
       }
-      jobs.get(id).state = 'pending';
-      pool.execute(name, file, args).then(
-        () => {
-          jobs.delete(id);
+
+      if (jobs[job.name] === undefined) {
+        logger.error('Unable to find job runner for job named: %s', job.name);
+        return;
+      }
+
+      await prisma.job.update({
+        where: {
+          id: job.id,
         },
-        (error) => {
-          jobs.get(id).state = 'failed';
-          jobs.get(id).error = error;
+        data: {
+          state: 'pending',
         },
-      );
+      });
+
+      pool
+        .execute(job.name, jobs[job.name].file, job.args)
+        .then(() => {
+          return prisma.job.update({
+            where: {
+              id: job.id,
+            },
+            data: {
+              state: 'completed',
+              duration: Date.now() - job.createdAt,
+            },
+          });
+        })
+        .catch((error) => {
+          logger.error(error);
+          return prisma.job.update({
+            where: {
+              id: job.id,
+            },
+            data: {
+              message: error.message,
+              state: 'failed',
+              duration: Date.now() - job.createdAt,
+            },
+          });
+        });
     }
 
-    const Job = {
-      async all() {
-        return Array.from(jobs.values());
-      },
-    };
     const Worker = {
       async all() {
         return Array.from(pool.workers.values());
@@ -59,7 +92,6 @@ export const BackgroundJob = {
 
     return {
       // Collections
-      Job,
       Worker,
 
       // Actions
@@ -67,29 +99,45 @@ export const BackgroundJob = {
         await client.flushall();
       },
       async enqueue(job, ...args) {
-        const id = uuid();
-        const createdAt = Date.now();
-        const entry = JSON.stringify({
-          id,
-          name: job.name,
-          file: job.file,
-          args,
-          createdAt,
+        const item = await prisma.job.create({
+          data: {
+            name: job.name,
+            args,
+            state: 'queued',
+          },
         });
 
-        await client.rpush('queue', entry);
+        await client.rpush('queue', item.id);
 
-        jobs.set(id, {
-          id,
-          name: job.name,
-          args,
-          state: 'queued',
-          createdAt,
-        });
-
-        return id;
+        return item.id;
       },
-      start() {
+      async start() {
+        // Assume that pending jobs are orphaned if we are starting the
+        // background server
+        const orphans = await prisma.job.findMany({
+          where: {
+            state: 'pending',
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        // Requeue orphaned jobs
+        await Promise.all(
+          orphans.map(async (orphan) => {
+            await prisma.job.update({
+              where: {
+                id: orphan.id,
+              },
+              data: {
+                state: 'queued',
+              },
+            });
+            await client.rpush('queue', orphan.id);
+          }),
+        );
+
         intervalId = setInterval(() => {
           processQueue();
         }, 1000);

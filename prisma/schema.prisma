@@ -118,3 +118,21 @@ model Dependency {
 
   @@unique(fields: [repositoryId, packageId], name: "repositoryByPackage")
 }
+
+enum JobState {
+  queued
+  pending
+  failed
+  completed
+}
+
+model Job {
+  id        String   @id @default(uuid())
+  name      String
+  args      Json
+  message   String?
+  duration Int?
+  state     JobState @default(queued)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
