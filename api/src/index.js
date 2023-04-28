@@ -13,7 +13,7 @@ async function main() {
     logger.info(`Listening on http://${HOST}:${PORT}`);
   });
 
-  BackgroundJob.start();
+  await BackgroundJob.start();
 }
 
 main().catch((error) => {

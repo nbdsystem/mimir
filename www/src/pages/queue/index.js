@@ -1,24 +1,36 @@
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistance, formatDistanceToNow } from 'date-fns';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { Page } from '../../components/Page';
 import { PageFooter } from '../../components/PageFooter';
 import { PageHeader } from '../../components/PageHeader';
 import { Query } from '../../components/Query';
+import { Tab, TabList, TabPanel, TabPanels, Tabs } from '../../components/Tabs';
 import { Text } from '../../components/Text';
 
-async function fetchJobs() {
-  const response = await fetch('/api/queue/jobs');
-  const json = await response.json();
-  return json;
-}
-
-async function fetchWorkers() {
-  const response = await fetch('/api/queue/workers');
-  const json = await response.json();
-  return json;
-}
-
 export default function QueuePage() {
+  const states = [
+    {
+      heading: 'Queued',
+      state: 'queued',
+      queryFn: fetchQueuedJobs,
+    },
+    {
+      heading: 'Pending',
+      state: 'pending',
+      queryFn: fetchPendingJobs,
+    },
+    {
+      heading: 'Failed',
+      state: 'failed',
+      queryFn: fetchFailedJobs,
+    },
+    {
+      heading: 'Completed',
+      state: 'completed',
+      queryFn: fetchCompletedJobs,
+    },
+  ];
+
   return (
     <Page>
       <PageHeader />
@@ -26,66 +38,93 @@ export default function QueuePage() {
         <Text asChild token="heading-01">
           <h1 className="mb-6">Queue</h1>
         </Text>
-        <div className="flex flex-col gap-y-12">
-          <ErrorBoundary fallback={<p>Error loading jobs</p>}>
-            <Query
-              queryKey="jobs"
-              queryFn={fetchJobs}
-              refetchInterval={1000}
-              fallback={<p>Loading queue...</p>}
-            >
-              {(data) => {
-                const now = new Date();
+        <div>
+          <Tabs>
+            <TabList>
+              <Tab>Queued</Tab>
+              <Tab>Pending</Tab>
+              <Tab>Failed</Tab>
+              <Tab>Completed</Tab>
+            </TabList>
+            <TabPanels>
+              {states.map((state) => {
                 return (
-                  <section>
-                    <div className="mb-4 flex items-center justify-between">
-                      <h2 className="text-2xl">Jobs</h2>
-                      <div className="flex flex-col items-end text-xs text-gray-500">
-                        Last updated
-                        <span className="text-xs">
-                          {formatDistanceToNow(now, {
-                            includeSeconds: true,
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Name</th>
-                          <th>State</th>
-                          <th>Duration</th>
-                          <th>Message</th>
-                          <th>Parameters</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.map((job) => {
+                  <TabPanel className="py-4" key={state.state}>
+                    <ErrorBoundary
+                      fallback={<p>Error loading {state.state}</p>}
+                    >
+                      <Query
+                        queryKey={state.state}
+                        queryFn={state.queryFn}
+                        refetchInterval={1000}
+                        fallback={<p>Loading {state.state}...</p>}
+                      >
+                        {(data) => {
                           return (
-                            <tr key={job.id}>
-                              <td>{job.name}</td>
-                              <td className="text-gray-500">{job.state}</td>
-                              <td className="text-gray-500">
-                                {job.createdAt
-                                  ? formatDistanceToNow(new Date(job.createdAt))
-                                  : null}
-                              </td>
-                              <td>
-                                {job.state === 'failed' ? job.error : null}
-                              </td>
-                              <td className="text-gray-500">
-                                {job.args?.join(', ')}
-                              </td>
-                            </tr>
+                            <>
+                              <h2 className="mb-4 flex items-center gap-x-2 px-4 text-2xl">
+                                {state.heading}{' '}
+                                <span className="text-sm text-gray-500">
+                                  ({data.length})
+                                </span>
+                              </h2>
+                              {data.length > 0 ? (
+                                <table>
+                                  <thead>
+                                    <tr>
+                                      <th>Name</th>
+                                      <th>State</th>
+                                      <th>Duration</th>
+                                      <th>Parameters</th>
+                                      <th>Message</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {data.map((job) => {
+                                      return (
+                                        <tr key={job.id}>
+                                          <td>{job.name}</td>
+                                          <td>{job.state}</td>
+                                          <td>
+                                            {job.state === 'completed'
+                                              ? formatDistance(
+                                                  new Date(job.createdAt),
+                                                  new Date(job.updatedAt),
+                                                )
+                                              : formatDistanceToNow(
+                                                  new Date(job.createdAt),
+                                                )}
+                                          </td>
+                                          <td>
+                                            <ul>
+                                              {job.args.map((arg, index) => {
+                                                return (
+                                                  <li key={index}>{arg}</li>
+                                                );
+                                              })}
+                                            </ul>
+                                          </td>
+                                          <td></td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              ) : (
+                                <p>No {state.state} jobs</p>
+                              )}
+                            </>
                           );
-                        })}
-                      </tbody>
-                    </table>
-                  </section>
+                        }}
+                      </Query>
+                    </ErrorBoundary>
+                  </TabPanel>
                 );
-              }}
-            </Query>
-          </ErrorBoundary>
+              })}
+            </TabPanels>
+          </Tabs>
+        </div>
+        <div className="flex flex-col gap-y-12">
           <ErrorBoundary fallback={<p>Error loading workers</p>}>
             <Query
               queryKey="workers"
@@ -136,4 +175,34 @@ export default function QueuePage() {
       <PageFooter />
     </Page>
   );
+}
+
+async function fetchQueuedJobs() {
+  const response = await fetch('/api/queue/jobs/queued');
+  const json = await response.json();
+  return json;
+}
+
+async function fetchPendingJobs() {
+  const response = await fetch('/api/queue/jobs/pending');
+  const json = await response.json();
+  return json;
+}
+
+async function fetchFailedJobs() {
+  const response = await fetch('/api/queue/jobs/failed');
+  const json = await response.json();
+  return json;
+}
+
+async function fetchCompletedJobs() {
+  const response = await fetch('/api/queue/jobs/completed');
+  const json = await response.json();
+  return json;
+}
+
+async function fetchWorkers() {
+  const response = await fetch('/api/queue/workers');
+  const json = await response.json();
+  return json;
 }

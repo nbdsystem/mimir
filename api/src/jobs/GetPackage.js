@@ -8,6 +8,7 @@ import { promisify } from 'node:util';
 import { logger } from '@mimir/logger';
 import { prisma } from '@mimir/prisma';
 import commonjs from '@rollup/plugin-commonjs';
+import json from '@rollup/plugin-json';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import virtual from '@rollup/plugin-virtual';
 import got from 'got';
@@ -267,6 +268,7 @@ async function getBundleData(directory) {
         commonjs({
           include: [/node_modules/],
         }),
+        json(),
       ],
       onwarn: () => {
         //
@@ -295,6 +297,7 @@ async function getBundleData(directory) {
           commonjs({
             include: /node_modules/,
           }),
+          json(),
           virtual({
             __entrypoint__: `export { ${identifier} } from '${filepath}';`,
           }),

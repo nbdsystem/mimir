@@ -43,6 +43,21 @@ export function setup() {
   // ---------------------------------------------------------------------------
   // Packages
   // ---------------------------------------------------------------------------
+  app.get(
+    '/packages',
+    handler(async (req, res) => {
+      const packages = await prisma.package.findMany({
+        select: {
+          id: true,
+          name: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+      res.json(packages);
+    }),
+  );
+
   const CREATE_PACKAGE_SCHEMA = z.object({
     name: z.string(),
   });
@@ -154,25 +169,93 @@ export function setup() {
   // Queue
   // ---------------------------------------------------------------------------
   app.get(
-    '/queue/jobs',
+    '/queue/jobs/queued',
     handler(async (req, res) => {
-      const jobs = await BackgroundJob.Job.all().then((jobs) => {
-        return jobs.map((job) => {
-          const result = {
-            id: job.id,
-            name: job.name,
-            args: job.args,
-            state: job.state,
-            createdAt: job.createdAt,
-          };
-
-          if (job.state === 'failed') {
-            result.error = job.error;
-          }
-
-          return result;
-        });
+      const jobs = await prisma.job.findMany({
+        where: {
+          state: 'queued',
+        },
+        select: {
+          id: true,
+          name: true,
+          args: true,
+          state: true,
+          message: true,
+          duration: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
+
+      res.json(jobs);
+    }),
+  );
+
+  app.get(
+    '/queue/jobs/pending',
+    handler(async (req, res) => {
+      const jobs = await prisma.job.findMany({
+        where: {
+          state: 'pending',
+        },
+        select: {
+          id: true,
+          name: true,
+          args: true,
+          state: true,
+          message: true,
+          duration: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      res.json(jobs);
+    }),
+  );
+
+  app.get(
+    '/queue/jobs/failed',
+    handler(async (req, res) => {
+      const jobs = await prisma.job.findMany({
+        where: {
+          state: 'failed',
+        },
+        select: {
+          id: true,
+          name: true,
+          args: true,
+          state: true,
+          message: true,
+          duration: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      res.json(jobs);
+    }),
+  );
+
+  app.get(
+    '/queue/jobs/completed',
+    handler(async (req, res) => {
+      const jobs = await prisma.job.findMany({
+        where: {
+          state: 'completed',
+        },
+        select: {
+          id: true,
+          name: true,
+          args: true,
+          state: true,
+          message: true,
+          duration: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
       res.json(jobs);
     }),
   );
