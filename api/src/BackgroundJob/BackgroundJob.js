@@ -24,14 +24,14 @@ export const BackgroundJob = {
         return;
       }
 
-      const { id, name, file, args } = JSON.parse(entry);
+      const { id, name, file, args, createdAt } = JSON.parse(entry);
       if (!jobs.has(id)) {
         jobs.set(id, {
           id,
           name,
-          file,
           args,
           state: 'queued',
+          createdAt,
         });
       }
       jobs.get(id).state = 'pending';
@@ -68,11 +68,13 @@ export const BackgroundJob = {
       },
       async enqueue(job, ...args) {
         const id = uuid();
+        const createdAt = Date.now();
         const entry = JSON.stringify({
           id,
           name: job.name,
           file: job.file,
           args,
+          createdAt,
         });
 
         await client.rpush('queue', entry);
@@ -80,9 +82,9 @@ export const BackgroundJob = {
         jobs.set(id, {
           id,
           name: job.name,
-          args: job.args,
+          args,
           state: 'queued',
-          createdAt: Date.now(),
+          createdAt,
         });
 
         return id;

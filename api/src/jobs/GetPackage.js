@@ -234,6 +234,15 @@ async function getBundleData(directory) {
   };
 
   for (const entrypoint of entrypoints) {
+    if (entrypoint.type !== 'module' && entrypoint.type !== 'commonjs') {
+      logger.info(
+        'Skipping entrypoint: :%s (%s)',
+        entrypoint.entrypoint,
+        entrypoint.type,
+      );
+      continue;
+    }
+
     logger.info(
       'Analyzing entrypoint: %s (%s)',
       entrypoint.entrypoint,
@@ -389,7 +398,12 @@ function getPackageExports(exportMap, type = 'commonjs') {
             return {
               entrypoint: '.',
               filepath: value,
-              type: key === 'import' ? 'module' : 'commonjs',
+              type:
+                key === 'import'
+                  ? 'module'
+                  : key === 'types'
+                  ? 'types'
+                  : 'commonjs',
             };
           }
 

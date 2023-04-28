@@ -1,5 +1,11 @@
 import cx from 'clsx';
-import { Children, cloneElement } from 'react';
+import {
+  Children,
+  cloneElement,
+  createContext,
+  useContext,
+  useMemo,
+} from 'react';
 
 const tokens = {
   'display-01': 'text-6xl',
@@ -29,4 +35,25 @@ export function Text({
     });
   }
   return <div className={cx(customClassName, mappings)}>{children}</div>;
+}
+
+const TextSettingsContext = createContext({
+  inherit: false,
+});
+
+export function TextSettings({ children, inherit }) {
+  const value = useMemo(() => {
+    return {
+      inherit,
+    };
+  }, [inherit]);
+  return (
+    <TextSettingsContext.Provider value={value}>
+      {children}
+    </TextSettingsContext.Provider>
+  );
+}
+
+export function useTextSettings() {
+  return useContext(TextSettingsContext);
 }

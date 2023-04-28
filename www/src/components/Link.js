@@ -2,6 +2,7 @@ import cx from 'clsx';
 import NextLink from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
+import { useTextSettings } from './Text';
 
 export function BaseLink({ activeClassName, className, children, ...rest }) {
   const { asPath, isReady } = useRouter();
@@ -18,10 +19,9 @@ export function BaseLink({ activeClassName, className, children, ...rest }) {
       // Using URL().pathname to get rid of query and hash
       const activePathname = new URL(asPath, location.href).pathname;
 
-      const newClassName =
-        linkPathname === activePathname
-          ? cx(className, activeClassName)
-          : className;
+      const newClassName = activePathname.startsWith(linkPathname)
+        ? cx(className, activeClassName)
+        : className;
 
       setComputedClassName(newClassName);
     }
@@ -35,7 +35,14 @@ export function BaseLink({ activeClassName, className, children, ...rest }) {
 }
 
 export function Link({ className, ...rest }) {
+  const settings = useTextSettings();
   return (
-    <BaseLink className={cx(className, 'text-blue-600 underline')} {...rest} />
+    <BaseLink
+      className={cx(className, {
+        ['text-blue-600 underline']: !settings.inherit,
+        inherit: settings.inherit,
+      })}
+      {...rest}
+    />
   );
 }
