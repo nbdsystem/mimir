@@ -2898,20 +2898,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/addon-interactions@npm:^7.0.7":
-  version: 7.0.7
-  resolution: "@storybook/addon-interactions@npm:7.0.7"
+"@storybook/addon-interactions@npm:^7.0.9":
+  version: 7.0.9
+  resolution: "@storybook/addon-interactions@npm:7.0.9"
   dependencies:
-    "@storybook/client-logger": 7.0.7
-    "@storybook/components": 7.0.7
-    "@storybook/core-common": 7.0.7
-    "@storybook/core-events": 7.0.7
+    "@storybook/client-logger": 7.0.9
+    "@storybook/components": 7.0.9
+    "@storybook/core-common": 7.0.9
+    "@storybook/core-events": 7.0.9
     "@storybook/global": ^5.0.0
-    "@storybook/instrumenter": 7.0.7
-    "@storybook/manager-api": 7.0.7
-    "@storybook/preview-api": 7.0.7
-    "@storybook/theming": 7.0.7
-    "@storybook/types": 7.0.7
+    "@storybook/instrumenter": 7.0.9
+    "@storybook/manager-api": 7.0.9
+    "@storybook/preview-api": 7.0.9
+    "@storybook/theming": 7.0.9
+    "@storybook/types": 7.0.9
     jest-mock: ^27.0.6
     polished: ^4.2.2
     ts-dedent: ^2.2.0
@@ -2923,7 +2923,7 @@ __metadata:
       optional: true
     react-dom:
       optional: true
-  checksum: 9f639f119cf204c38c27a12c813aeafcca6dd1d58d56d03c36f6aa8ce488b285b6319109de223d7240916865d40a5e784bccb0aab19a27f2d50a8b0e7044782d
+  checksum: e0aa62abf1a2e2661f59ecf937933251228084c3e3801cf82290a8836879585e35b8e0f6b2a96901863421d2f63818e1ea1b676397c2438a1a35f3899fe782f5
   languageName: node
   linkType: hard
 
@@ -3633,16 +3633,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/instrumenter@npm:7.0.7, @storybook/instrumenter@npm:^7.0.0-beta.0 || ^7.0.0-rc.0 || ^7.0.0":
-  version: 7.0.7
-  resolution: "@storybook/instrumenter@npm:7.0.7"
+"@storybook/instrumenter@npm:7.0.9, @storybook/instrumenter@npm:^7.0.0-beta.0 || ^7.0.0-rc.0 || ^7.0.0":
+  version: 7.0.9
+  resolution: "@storybook/instrumenter@npm:7.0.9"
   dependencies:
-    "@storybook/channels": 7.0.7
-    "@storybook/client-logger": 7.0.7
-    "@storybook/core-events": 7.0.7
+    "@storybook/channels": 7.0.9
+    "@storybook/client-logger": 7.0.9
+    "@storybook/core-events": 7.0.9
     "@storybook/global": ^5.0.0
-    "@storybook/preview-api": 7.0.7
-  checksum: 0303a2eabcce4e5367f629ea585c0c9d68c32908a2e902ef5fcbf12c503f1d59ec56eaa20b8ecc6300c6d4cd97bffbbde4407d5edaad0cc5520b50f99e2500f3
+    "@storybook/preview-api": 7.0.9
+  checksum: 7e3447121386cc6c65a39697a3f301386b8bc7975f9739c137e2282bfbabf102f7df0e3f8c12e9939c86980b7f98ce92000f9013e959398d89f081856e29b10a
   languageName: node
   linkType: hard
 
@@ -15227,7 +15227,7 @@ __metadata:
     "@mimir/prisma": 0.0.0
     "@next/eslint-plugin-next": ^13.4.1
     "@storybook/addon-essentials": ^7.0.9
-    "@storybook/addon-interactions": ^7.0.7
+    "@storybook/addon-interactions": ^7.0.9
     "@storybook/addon-links": ^7.0.7
     "@storybook/addon-styling": ^1.0.5
     "@storybook/blocks": ^7.0.7
