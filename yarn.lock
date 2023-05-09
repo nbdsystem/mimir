@@ -2365,7 +2365,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@mimir/logger@workspace:packages/logger"
   dependencies:
-    pino: ^8.12.1
+    pino: ^8.14.1
     pino-pretty: ^10.0.0
   languageName: unknown
   linkType: soft
@@ -11771,9 +11771,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pino@npm:^8.12.1":
-  version: 8.12.1
-  resolution: "pino@npm:8.12.1"
+"pino@npm:^8.14.1":
+  version: 8.14.1
+  resolution: "pino@npm:8.14.1"
   dependencies:
     atomic-sleep: ^1.0.0
     fast-redact: ^3.1.1
@@ -11788,7 +11788,7 @@ __metadata:
     thread-stream: ^2.0.0
   bin:
     pino: bin.js
-  checksum: 2e1689ea43dc42340f6316d311c0b41b8dc08ab8b75b3f182a7c0c14598d6501e96d26403bc3912b6b9478d37d272414e345e03c3aed1e2e42908aea317aa5fd
+  checksum: 72dcae8f550d375695bb8745f11b30c42aaa20d0bcab8f546ca5af0684d784453850949fe1b244206793e813a46d72cbbf0dda8aed2cee86e9491ba44a643e3e
   languageName: node
   linkType: hard
 
