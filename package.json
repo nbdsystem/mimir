@@ -20,7 +20,7 @@
     "test": "cross-env NODE_CONFIG_DIR=api/config NODE_OPTIONS='--experimental-vm-modules --no-warnings=ExperimentalWarning' jest"
   },
   "devDependencies": {
-    "@commitlint/cli": "^17.6.1",
+    "@commitlint/cli": "^17.6.3",
     "@commitlint/config-conventional": "^17.6.1",
     "@trivago/prettier-plugin-sort-imports": "^4.1.1",
     "cross-env": "^7.0.3",
