@@ -3389,7 +3389,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/client-logger@npm:7.0.17":
+"@storybook/client-logger@npm:7.0.17, @storybook/client-logger@npm:^7.0.0-beta.0 || ^7.0.0-rc.0 || ^7.0.0":
   version: 7.0.17
   resolution: "@storybook/client-logger@npm:7.0.17"
   dependencies:
@@ -3407,7 +3407,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/client-logger@npm:7.0.9, @storybook/client-logger@npm:^7.0.0-beta.0 || ^7.0.0-rc.0 || ^7.0.0":
+"@storybook/client-logger@npm:7.0.9":
   version: 7.0.9
   resolution: "@storybook/client-logger@npm:7.0.9"
   dependencies:
@@ -3437,7 +3437,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/components@npm:7.0.17":
+"@storybook/components@npm:7.0.17, @storybook/components@npm:^7.0.2":
   version: 7.0.17
   resolution: "@storybook/components@npm:7.0.17"
   dependencies:
@@ -3475,7 +3475,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/components@npm:7.0.9, @storybook/components@npm:^7.0.2":
+"@storybook/components@npm:7.0.9":
   version: 7.0.9
   resolution: "@storybook/components@npm:7.0.9"
   dependencies:
@@ -3585,7 +3585,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/core-events@npm:7.0.17":
+"@storybook/core-events@npm:7.0.17, @storybook/core-events@npm:^7.0.2":
   version: 7.0.17
   resolution: "@storybook/core-events@npm:7.0.17"
   checksum: 10f7d3fa3250a1a138ac5c7ed6218b021990d28a31b20d1efb4fd0f5fc80c78df161a8ce096acffbcef1ab82fdba720613dcd4c0e76f488f6e948a843e83240a
@@ -3599,7 +3599,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/core-events@npm:7.0.9, @storybook/core-events@npm:^7.0.2":
+"@storybook/core-events@npm:7.0.9":
   version: 7.0.9
   resolution: "@storybook/core-events@npm:7.0.9"
   checksum: f8006bda9c782b6d5df9ca308dba8dc5b6cf457f28dd2042ccf80bc62233a1ffeb64aecbd99dd67ffdaf355a01504f1705b0d2b94b2dc68ae95c178761bfa3d8
@@ -3777,7 +3777,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/manager-api@npm:7.0.17":
+"@storybook/manager-api@npm:7.0.17, @storybook/manager-api@npm:^7.0.2":
   version: 7.0.17
   resolution: "@storybook/manager-api@npm:7.0.17"
   dependencies:
@@ -3829,7 +3829,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/manager-api@npm:7.0.9, @storybook/manager-api@npm:^7.0.2":
+"@storybook/manager-api@npm:7.0.9":
   version: 7.0.9
   resolution: "@storybook/manager-api@npm:7.0.9"
   dependencies:
@@ -3931,7 +3931,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/node-logger@npm:7.0.17":
+"@storybook/node-logger@npm:7.0.17, @storybook/node-logger@npm:^7.0.7":
   version: 7.0.17
   resolution: "@storybook/node-logger@npm:7.0.17"
   dependencies:
@@ -3955,7 +3955,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/node-logger@npm:7.0.9, @storybook/node-logger@npm:^7.0.7":
+"@storybook/node-logger@npm:7.0.9":
   version: 7.0.9
   resolution: "@storybook/node-logger@npm:7.0.9"
   dependencies:
@@ -4007,7 +4007,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/preview-api@npm:7.0.17":
+"@storybook/preview-api@npm:7.0.17, @storybook/preview-api@npm:^7.0.2":
   version: 7.0.17
   resolution: "@storybook/preview-api@npm:7.0.17"
   dependencies:
@@ -4053,7 +4053,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/preview-api@npm:7.0.9, @storybook/preview-api@npm:^7.0.2":
+"@storybook/preview-api@npm:7.0.9":
   version: 7.0.9
   resolution: "@storybook/preview-api@npm:7.0.9"
   dependencies:
@@ -4238,7 +4238,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/theming@npm:7.0.17":
+"@storybook/theming@npm:7.0.17, @storybook/theming@npm:^7.0.2":
   version: 7.0.17
   resolution: "@storybook/theming@npm:7.0.17"
   dependencies:
@@ -4268,7 +4268,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/theming@npm:7.0.9, @storybook/theming@npm:^7.0.2":
+"@storybook/theming@npm:7.0.9":
   version: 7.0.9
   resolution: "@storybook/theming@npm:7.0.9"
   dependencies:
@@ -4283,7 +4283,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/types@npm:7.0.17":
+"@storybook/types@npm:7.0.17, @storybook/types@npm:^7.0.2":
   version: 7.0.17
   resolution: "@storybook/types@npm:7.0.17"
   dependencies:
@@ -4307,7 +4307,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/types@npm:7.0.9, @storybook/types@npm:^7.0.2":
+"@storybook/types@npm:7.0.9":
   version: 7.0.9
   resolution: "@storybook/types@npm:7.0.9"
   dependencies:
