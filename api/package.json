@@ -10,7 +10,7 @@
     "@mimir/prisma": "0.0.0",
     "@rollup/plugin-commonjs": "^24.1.0",
     "@rollup/plugin-json": "^6.0.0",
-    "@rollup/plugin-node-resolve": "^15.0.2",
+    "@rollup/plugin-node-resolve": "^15.1.0",
     "@rollup/plugin-virtual": "^3.0.1",
     "@sindresorhus/slugify": "^2.2.0",
     "body-parser": "^1.20.2",
