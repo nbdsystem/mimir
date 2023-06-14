@@ -5440,7 +5440,7 @@ __metadata:
     ioredis: ^5.3.2
     morgan: ^1.10.0
     nodemon: ^2.0.22
-    rollup: ^3.21.0
+    rollup: ^3.25.1
     semver: ^7.5.0
     supertest: ^6.3.3
     terser: ^5.17.1
@@ -13548,9 +13548,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rollup@npm:^3.21.0":
-  version: 3.21.0
-  resolution: "rollup@npm:3.21.0"
+"rollup@npm:^3.25.1":
+  version: 3.25.1
+  resolution: "rollup@npm:3.25.1"
   dependencies:
     fsevents: ~2.3.2
   dependenciesMeta:
@@ -13558,7 +13558,7 @@ __metadata:
       optional: true
   bin:
     rollup: dist/bin/rollup
-  checksum: f3294d712147c0975c59ff81b3010dc08d07743cdad72fbe12879044b3e467139b3c2aeec85768656c4f7ec6a7b3d19354a78fc2050044bf8e90a499e145e31e
+  checksum: f483b28a0605097a725b080c088262b0fa21f7bce66f741df73d9ff0be6a3baaf2927916b094ce95412f4f15cc59bb5eae020f59cae3d3a6993d123faceb5b41
   languageName: node
   linkType: hard
 
